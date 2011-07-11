@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>AN Advanced Solver for Presburger Arithmetic</title>
+
+<script type="text/javascript" src="js/jQuery.js"></script>
+<script type="text/javascript" src="js/jQueryUI.js"></script>
+<script type="text/javascript" src="js/jquery.ui.selectmenu.js"></script>
+<script type="text/javascript" src="js/jquery.ui.widget.js"></script>
+<script type="text/javascript" src="js/jquery.dataTables.js"></script>
+<script type="text/javascript">
+	jQuery.noConflict();
+	
+</script>
+
+<script type="text/javascript" src="js/prototype.js"></script>
+
+
+<LINK REL=StyleSheet HREF="css/screenMain.css" TYPE="text/css" MEDIA=screen>
+<LINK REL=StyleSheet HREF="css/jQueryUI.css" TYPE="text/css" MEDIA=screen>
+<link type="text/css" href="css/jquery.ui.selectmenu.css" rel="stylesheet" />
+<link type="text/css" href="css/dataTable.css" rel="stylesheet" />
+
+<script type="text/javascript" src="js/main.js"></script>
+
+
+</head>
+<body>
+
+<div id="header"><img src="Images/tum_logo.png" height="34px"> <img src="Images/info_logo.png" height="34px"> <h1>An Advanced Solver for Presburger Arithmetic</h1></div>
+
+<div id="body">
+	<div id="tabs">
+		<ul>
+			<li><a href="#tabs-1">E1</a></li>
+			<li><a href="#macro">Macros</a></li>
+			<li><a href="#add">+</a></li>
+			
+		</ul>
+		
+		<div id="tabs-1">
+			
+			<input type='text' id='tabName1' value='E1' onKeyUp='propagateName(1)' class='heading' maxlength=25><br>
+			
+			<button class="b1" name="A:" >&forall;</button>
+			<button class="b1" name="E:" >&exist;</button>
+			<button class="b1" name="!" >&not;</button>
+			<button class="b1" name="&&" >&and;</button>
+			<button class="b1" name="||" >&or;</button>
+			<button class="b1" name="->" >&rArr;</button>
+			<button class="b1" name="<" ><</button>
+			<button class="b1" name="<=" >&le;</button>
+			<button class="b1" name=">" >></button>
+			<button class="b1" name=">=" >&ge;</button>
+			<button class="b1" name="==">=</button>
+			<button class="b1" name="!=" >&ne;</button>
+			<button class="b1" name="(">(</button>
+			<button class="b1" name=")" >)</button>
+			<br>
+			
+			
+			<select name="macros-1" id="macros-1">
+				<option value="" selected="selected">Macros</option>
+			</select>
+			
+			<button class="b1" name="u" >u</button>
+			<button class="b1" name="v" >v</button>
+			<button class="b1" name="w" >w</button>	
+			<button class="b1" name="x" >x</button>
+			<button class="b1" name="y" >y</button>
+			<button class="b1" name="z" >z</button>
+			<br><br>
+			<textarea type='text' name='equation' value='Insert your equation here!' class="equation" id="equation1"></textarea>
+			<br><br>
+			<fieldset>
+			<input type="radio" name="optimize-1" value="N" checked> Give me n solutions with n= <input type="text" id="nSol-1" value="1" class="short"><br>
+			<input type="radio" name="optimize-1" value="All"> Give me all solutions (Warning: There can be a lot and your browser might crash!)<br>
+			<input type="radio" name="optimize-1" value="Min"> Minimize the term <input type="text" id="minTerm-1" value="" class="middle"><br>
+			<input type="radio" name="optimize-1" value="Max"> Maximize the term <input type="text" id="maxTerm-1" value="" class="middle"><br>
+			</fieldset>
+				
+            <button id="uploader1" name="1">Upload File</button>
+			<button id="add_equation1" name="1">Solve It!</button>
+			<button class="help">Help me</button>
+			
+			<p id="equation1-text">Welcome to the Solver for Presburger Arithmetics! Please enter your equation above. </p>
+      
+		</div>
+		<div id="macro">
+			<p>Welcome to the Macro Manager! Here you ca add macros that you want to use in your formulae.</p>
+			<fieldset id='macroField'>
+				<input type='text' name='macro1' id='macro1' value='' class="macro"> <button id='macroUpload1'>Save Macro</button><br>
+			</fieldset>
+			<button id='addMacro'>Add Macro</button>
+			<button id='clearMacros'>Clear</button><br><br>
+			<button id='fileUploadMacros'>Upload File</button>
+			<button id='exportMacros'>Export to File</button>
+			<button class="help">Help me</button>
+		</div>
+		<div id="add">
+			<p>Welcome to the Solver for Presburger Arithmetics! Just Click '+' to add a equation. </p>
+		</div>
+	</div>
+</div>
+
+<div id="error-message" title="Error">
+	<p>
+    An Error occured. Here's what the Server said:
+	</p>
+	<p id="error-message-paragraph">
+
+	</p>
+</div>
+
+<div id="dialog-message" title="">
+	<p id="dialog-message-paragraph">
+
+	</p>
+</div>
+
+<div id="debug_output"></div>
+<div id="shadow-overlay"></div>
+<div id="info-overlay">
+	<div id="info-overlay-close"><img src='Images/close_icon.png'></div>
+	<h1>Help</h1>
+	<h2>Grammar for formulae</h2>
+	<p>
+		Each formula has to be in a certain format to be recognized by the parser.<br>
+		The simplified grammar for formulae looks as follows:
+	</p>
+	<p>
+		Formula = <br>
+				<span class="padding-info-overlay">Predicate <b>(e.g. x+y <= 13)</b></span><br>
+				<span class="padding-info-overlay"><b>|</b> (Formula) <b>(e.g. (x+y <= 13) )</b></span><br>
+				<span class="padding-info-overlay"><b>|</b> Formula (&& Formula)* <b>(e.g. x<=10 && y<=10)</b></span><br>
+				<span class="padding-info-overlay"><b>|</b> Formula (|| Formula)* <b>(e.g. x<=10 || y<=10)</b></span><br>
+				<span class="padding-info-overlay"><b>|</b> Formula -> Formula <b>(e.g. x==10 -> y<=10)</b></span><br>
+				<span class="padding-info-overlay"><b>|</b> E(var)*:Formula <b>(e.g. Ex:x+y==5)</b></span><br>
+				<span class="padding-info-overlay"><b>|</b> A(var)*:Formula <b>(e.g. Ax:x>=0)</b></span><br>
+				<span class="padding-info-overlay"><b>|</b> &&([var=a..b])* This is a and-forall-Formula. var will be replaces by each value in the range between a and b.<b>(e.g. &&[i=1..4] x[i]<=i or &&[i=1..2][j=1..2] x[i] == y[j] )</b></span><br> 
+				<span class="padding-info-overlay"><b>|</b> ||([var=a..b])* The same as the and-forall-Formula, but with or instead of and <b>(e.g. ||[i=1..4] x[i]<=i)</b></span><br>
+	</p>
+	<p>A variable consists of one lower-case letter. You can also define arrays, e.g. x[1].</p>
+	<h3>Examples</h3>
+	<p>
+		Ex:x+y==4<br>
+		x <=10 && y<=10
+	</p> 
+	<p> &nbsp;</p>
+	<h2>Macros</h2>
+	<p>To define a Macro please go to the Macro-Tab. A Macro definition has to be of the following form:</p>
+	<p>
+		[A-Z] [a-z]* (var(,var)*) := Formula<br>
+		The first letter has to be a upper-case letter, followed be an arbitrary number of lower-case letters.
+	</p>  
+	<h3>Example</h3>
+	<p>
+		Test(x) := x==15
+	</p> 
+</div>
+
+</body>
+</html>
