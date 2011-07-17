@@ -36,7 +36,7 @@ public class PresburgerAutomaton{
 	//Decides which determinization-algorithm to use. 1 = Choose letter, 2 = Choose Powerset-Item
 	private static final int DET_ALG = 1;
 	//Decides whether the trash state(s) in an automaton are shown in the toString method or not
-	private static final boolean SHOW_TRASH = true;
+	private static final boolean SHOW_TRASH = false;
 
 	private Hashtable<String,State> states = new Hashtable<String,State>();
 	
@@ -551,6 +551,7 @@ public class PresburgerAutomaton{
 			
 			String currentSetName = makeNewStateName(currentSet);
 			if (!newStates.containsKey(currentSetName)) {
+				//This has to be the first loop
 				State s = new State(currentSetName);
 				s.setInitial(true);
 				s.setFinal(initial.isFinal());
@@ -1550,7 +1551,7 @@ public class PresburgerAutomaton{
 	}
 	
 	/**
-	 * Gets the min/max value of a automaton (depends on type, "min" gets min, "max" gehts max)
+	 * Gets the min/max value of a automaton (depends on type, "min" gets min, "max" gets max)
 	 * @param start
 	 * @param calculated
 	 * @param ignore
@@ -1583,7 +1584,7 @@ public class PresburgerAutomaton{
 					return -1;
 				}
 			}
-			
+			// get all states we have to try out
 			if (!ignore.contains(s)) {
 				Pair<State,Integer> p = new Pair<State,Integer>();
 				boolean done = false;
@@ -1646,7 +1647,6 @@ public class PresburgerAutomaton{
 		
 		calculated.put(start, current);		
 		return current;
-
 	}
 	
 	/**
@@ -1855,7 +1855,7 @@ public class PresburgerAutomaton{
 	
 	
 	/**
-	 * Does the pairing operation for a given operator. Please make sure the automaton is deterministic before using this.
+	 * Does the pairing operation for a given operator. 
 	 * @param op
 	 * @return
 	 * @throws DifferentVariableSetException 
@@ -1918,9 +1918,6 @@ public class PresburgerAutomaton{
 							b.transitions.get(currentPair.getSecond()).get(currentSecondDestination), BDDFactory.and);
 					
 					
-//					System.out.print(b.transitions.get(currentPair.getSecond()).get(currentSecondDestination) + " ");
-//					System.out.println(newTransition);
-					
 					if (!newTransition.isZero()) {
 						//Add the new transition to the transitiontable of the new automaton
 						
@@ -1935,7 +1932,6 @@ public class PresburgerAutomaton{
 						if (op.apply(currentFirstDestination.isFinal() , currentSecondDestination.isFinal())) {
 							currentResultDestinationState.setFinal(true);
 						}
-//						System.out.println(currentResultState.getName() + "--" + newTransition.toString() +"-->" + currentResultDestinationState.getName());
 						result.transitions.get(currentResultState).put(currentResultDestinationState, newTransition);
 					}
 				}

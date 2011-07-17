@@ -189,135 +189,8 @@ public class PresburgerSolver {
         	System.out.println("Number of Solutions: " + numSol);
         		
         	if ((type.equals("Min") || type.equals("Max")) && numSol != 0) {
-
-        		if (numSol == -1 && type.equals("Max")) {
-        			//There is a infinite number of solutions, so we can't optimize here (in some cases we can, but there would be a fair chance to crash the whole server.)
-	        		solutions.add(new Integer[]{-1});
-	        		request.setSolutionSpace(solutions);
-	        		request.setOptimizedSolution(-1);
-        		} else {
-            		String[] newVars = new String[varNames.length+1];
-            		int i=0;
-            		for (String s:varNames) {
-            			newVars[i++] = s;
-            		}
-            		newVars[i] = newVar;
-            		varNames = newVars;
-        			
-            		input = new ANTLRStringStream(optimize+"-" + newVar + " == 0");
-                    lex = new PresburgerLexer(input);
-            		tokens = new CommonTokenStream(lex);
-                    parser = new PresburgerParser(tokens);
-            		
-            		PresburgerParser.linearpred_return opt;
-            		try {
-            			opt = parser.linearpred();
-            		} catch (RecognitionException e) {
-            			request.setException("Error while Parsing!");
-            			return;
-            		}
-                    ast = (org.antlr.runtime.tree.CommonTree)opt.getTree();
-            		
-            		try {
-						t = new LogicTree(ast);
-            		} catch (UnknownDynamicVariable e) {
-            			request.setException(e.getMessage());
-            			return ;
-            		} catch (UnknownMacroException e) {
-            			request.setException(e.getMessage());
-            			return;
-            		} catch (ArgumentMismatchException e) {
-            			request.setException(e.getMessage());
-            			return;
-            		}
-            		
-            		//Check if all Variables from the term are in the automaton already!
-            		String[] termVarNames = t.getAllFreeVarNames();
-            		boolean found = false;
-            		String error = "";
-            		for (String var:termVarNames) {
-            			found = false;
-            			for (String s:varNames) {
-            				if (s.equals(var)) {
-            					found = true;
-            					break;
-            				}
-            			}
-            			if (!found) {
-            				error = var;
-            				break;
-            			}
-            		}
-            		
-            		if (!found) {
-        				request.setException("The variable " + error + "from your term is not a free variable in the above formula. Therefore we could not optimize your solution.");
-            		} else {
-	            		
-	            		
-	            		PresburgerAutomaton optRest = walkTree(t);
-	            		
-	            		String[] varSetResult = result.getVarNames();
-	            		String[] varSetRest = optRest.getVarNames();
-	            		
-	            		boolean varSetOk = true;
-	            		for (String s:varSetRest) {
-	            			boolean done = false;
-	            			for (String x:varSetResult) {
-	            				if (s.equals(x)) {
-	            					done = true;
-	            					break;
-	            				}
-	            			}
-	            			if (!done && !s.equals(newVar)) {
-	            				varSetOk = false;
-	            				request.setException("The variable " + s + " from your term is not a free variable in your formula. Therefore we could not optimize your solution.");
-	            			}
-	            		}
-	            		
-	    	        	if (varSetOk) {
-	    	        		PresburgerAutomaton resultClone = result.clone();
-	    	
-	    	        		resultClone = resultClone.intersection(optRest);
-	    	        		resultClone = resultClone.determinize();
-	    	        		resultClone = resultClone.minimize();
-	    	        		resultClone.makeNiceNames();
-	    	        		PresburgerAutomaton resultAndRest = resultClone.clone();
-	    	        		        		
-	    	        		for (String e:varNames) {
-	    	        			if (!e.equals(newVar)) {
-	    	        				resultClone = resultClone.existQuant(e);
-	    	        			}
-	    	        		}
-	    	
-	    	        		resultClone = resultClone.determinize();
-	    	        		resultClone = resultClone.minimize();
-	    	        		
-	    	        		resultClone.makeNiceNames();
-	    	        		System.out.println(resultClone);
-	    	        		Integer value = -1;
-	    	        		if (type.equals("Max"))
-	    	        			value = resultClone.getMaxValue();
-	    	        		if (type.equals("Min"))
-	    	        			value = resultClone.getMinValue();
-	    	        		
-
-	    	        		if (value != -1) {
-	    	        			request.setSolutionSpace(resultAndRest.getValuesFor(newVar , value));
-	    	        			request.setOptimizedSolution(value);
-	    	        		} else {
-	    	        			solutions.add(new Integer[]{-1});
-	    	        			request.setSolutionSpace(solutions);
-	    	        			request.setOptimizedSolution(-1);
-	    	        		}
-	    	        		System.out.println("Done MAX/MIN " + value);
-	    	        	} else {
-	    	        		solutions.add(new Integer[]{-1});
-	    	        		
-	    	        		request.setSolutionSpace(solutions);
-		        			request.setOptimizedSolution(-1);
-	    	        	}
-            		}
-        		}
+        		optimizeTerm(request, optimize, type, t, varNames, newVar,
+						result, solutions, numSol);
         	}
 
             if ((type.equals("All")) && numSol > 0) {
@@ -356,6 +229,209 @@ public class PresburgerSolver {
         } else {
         	throw new TooManyVariablesException("There where too many variables in this formula. We currently only support up to " + this.varLimit + " variables.");
         }
+	}
+
+	private void optimizeTerm(SolverRequest request, String optimize,
+			String type, LogicTree t, String[] varNames, String newVar,
+			PresburgerAutomaton result, List<Integer[]> solutions,
+			Integer numSol) {
+		
+		CharStream input;
+		PresburgerLexer lex;
+		CommonTokenStream tokens;
+		PresburgerParser parser;
+		org.antlr.runtime.tree.CommonTree ast;
+		
+		CharStream inputMin;
+		PresburgerLexer lexMin;
+		CommonTokenStream tokensMin;
+		PresburgerParser parserMin = null;
+		org.antlr.runtime.tree.CommonTree astMin = null;
+		
+		if (numSol == -1 && type.equals("Max")) {
+			//There is a infinite number of solutions, so we can't optimize here (in some cases we can, but there would be a fair chance to crash the whole server.)
+			solutions.add(new Integer[]{-1});
+			request.setSolutionSpace(solutions);
+			request.setOptimizedSolution(-1);
+		} else {
+			String[] newVars = new String[varNames.length+1];
+			int i=0;
+			for (String s:varNames) {
+				newVars[i++] = s;
+			}
+			newVars[i] = newVar;
+			varNames = newVars;
+			
+			input = new ANTLRStringStream(optimize+"-" + newVar + " == 0");
+			lex = new PresburgerLexer(input);
+			tokens = new CommonTokenStream(lex);
+		    parser = new PresburgerParser(tokens);
+		    
+			if (type.equals("Min")) {
+		    	inputMin = new ANTLRStringStream(optimize+"+" + newVar + " == 0");
+		    	lexMin = new PresburgerLexer(inputMin);
+				tokensMin = new CommonTokenStream(lexMin);
+			    parserMin = new PresburgerParser(tokensMin);
+		    }
+			
+			PresburgerParser.linearpred_return opt;
+			PresburgerParser.linearpred_return optMin = null;
+			try {
+				opt = parser.linearpred();
+				if (type.equals("Min")) {
+					optMin = opt = parserMin.linearpred(); 
+				}
+			} catch (RecognitionException e) {
+				request.setException("Error while Parsing!");
+				return;
+			}
+		    ast = (org.antlr.runtime.tree.CommonTree)opt.getTree();
+			
+		    if (type.equals("Min")) {
+		    	astMin = (org.antlr.runtime.tree.CommonTree)optMin.getTree(); 
+			}
+		    
+		    
+		    LogicTree tMin = null;
+			try {
+				t = new LogicTree(ast);
+				if (type.equals("Min"))
+					tMin = new LogicTree(astMin);
+			} catch (UnknownDynamicVariable e) {
+				request.setException(e.getMessage());
+				return ;
+			} catch (UnknownMacroException e) {
+				request.setException(e.getMessage());
+				return;
+			} catch (ArgumentMismatchException e) {
+				request.setException(e.getMessage());
+				return;
+			}
+			
+			//Check if all Variables from the term are in the automaton already!
+			String[] termVarNames = t.getAllFreeVarNames();
+			boolean found = false;
+			String error = "";
+			for (String var:termVarNames) {
+				found = false;
+				for (String s:varNames) {
+					if (s.equals(var)) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					error = var;
+					break;
+				}
+			}
+			
+			if (!found) {
+				request.setException("The variable " + error + "from your term is not a free variable in the above formula. Therefore we could not optimize your solution.");
+			} else {
+				
+				
+				PresburgerAutomaton optRest = walkTree(t);
+				PresburgerAutomaton optRestMin = null;
+				if (type.equals("Min"))
+					optRestMin = walkTree(tMin);
+				
+				String[] varSetResult = result.getVarNames();
+				String[] varSetRest = optRest.getVarNames();
+				
+				boolean varSetOk = true;
+				for (String s:varSetRest) {
+					boolean done = false;
+					for (String x:varSetResult) {
+						if (s.equals(x)) {
+							done = true;
+							break;
+						}
+					}
+					if (!done && !s.equals(newVar)) {
+						varSetOk = false;
+						request.setException("The variable " + s + " from your term is not a free variable in your formula. Therefore we could not optimize your solution.");
+					}
+				}
+				
+		    	if (varSetOk) {
+		    		PresburgerAutomaton resultClone = result.clone();
+		    		
+		    		resultClone = resultClone.intersection(optRest);
+		    		resultClone = resultClone.determinize();
+		    		resultClone = resultClone.minimize();
+		    		resultClone.makeNiceNames();
+		    		PresburgerAutomaton resultAndRest = resultClone.clone();
+		    		        		
+		    		for (String e:varNames) {
+		    			if (!e.equals(newVar)) {
+		    				resultClone = resultClone.existQuant(e);
+		    			}
+		    		}
+  	
+		    		resultClone = resultClone.determinize();
+		    		resultClone = resultClone.minimize();
+		    		
+		    		resultClone.makeNiceNames();
+		    		
+		    		PresburgerAutomaton resultCloneMin = null;
+		    		PresburgerAutomaton resultAndRestMin = null;
+		    		if (type.equals("Min")) {
+		    			resultCloneMin = result.clone();
+		    			
+			    		resultCloneMin = resultCloneMin.intersection(optRest);
+			    		resultCloneMin = resultCloneMin.determinize();
+			    		resultCloneMin = resultCloneMin.minimize();
+			    		resultCloneMin.makeNiceNames();
+			    		resultAndRestMin = resultCloneMin.clone();
+			    		        		
+			    		for (String e:varNames) {
+			    			if (!e.equals(newVar)) {
+			    				resultCloneMin = resultCloneMin.existQuant(e);
+			    			}
+			    		}
+	  	
+			    		resultCloneMin = resultCloneMin.determinize();
+			    		resultCloneMin = resultCloneMin.minimize();
+			    		
+			    		resultCloneMin.makeNiceNames();
+		    		}
+		    		
+		    		
+		    		Integer value = null;
+		    		if (type.equals("Max"))
+		    			value = resultClone.getMaxValue();
+		    		if (type.equals("Min")) {
+		    			value = resultClone.getMinValue();
+		    			Integer valueMin = resultClone.getMaxValue();
+		    			if (-valueMin < value) {
+		    				value = -valueMin;
+		    			}
+		    		}
+		    		
+
+		    		if (value != null) {
+		    			if (value >= 0) {
+			    			request.setSolutionSpace(resultAndRest.getValuesFor(newVar , value));
+			    			request.setOptimizedSolution(value);
+		    			} else {
+		    				request.setSolutionSpace(resultAndRestMin.getValuesFor(newVar , -value));
+			    			request.setOptimizedSolution(value);
+		    			}
+		    		} else {
+		    			solutions.add(new Integer[]{-1});
+		    			request.setSolutionSpace(solutions);
+		    			request.setOptimizedSolution(-1);
+		    		}
+		    		System.out.println("Done MAX/MIN " + value);
+		    	} else {
+		    		solutions.add(new Integer[]{-1});
+		    		
+		    		request.setSolutionSpace(solutions);
+					request.setOptimizedSolution(-1);
+		    	}
+			}
+		}
 	}
 	
 	public PresburgerAutomaton solveAutomaton(String formula){
@@ -785,7 +861,6 @@ public class PresburgerSolver {
     				}
     				
     				int tmp = currentNum[count] - currentFormula.eval(currentLetter);
-    				System.out.println("NUM" + (int) Math.floor(0.5 * tmp));
     				count++;
     				if (operation.equals("AND")) {
 	    				if (currentFormula.getOP() == Element.LEQ) {
@@ -850,7 +925,6 @@ public class PresburgerSolver {
     				}
     			}
     			
-    			System.out.println(nextState);
     			if (operation.equals("OR") && !atLeastOne)
     				toTrash = true;
     			
