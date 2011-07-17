@@ -313,92 +313,12 @@ public class Formula {
 		
 		return result;
 	}
-	
+
 	/**
-	 * Gets a formula f and a Element e, from the propagation algorithm and tries to 'learn' from them. E.g. if this is x+y<=4 , f is x==4 and e = AND, the result is y <= 0
+	 * Gets a formula and tries to simplify itself by using the other formula.
 	 * @param f
-	 * @return true, if the whole subtree has do be deleted
+	 * @param e
 	 */
-	public void getPropagationAndAct(Formula f , Element e) {
-		
-		if (this == f)
-			return;
-		
-		//First, check if everything from f is in here, too.
-		
-		boolean equalPrefixes = true;
-		boolean fAllOne = true;
-		boolean negEqualPrefixes = true;
-		for (String x:f.equ.keySet()) {
-			if (!this.equ.containsKey(x)) {
-				return ;
-			} else {
-				fAllOne = fAllOne && f.equ.get(x) == 1;
-				equalPrefixes = equalPrefixes && (f.equ.get(x) == this.equ.get(x)) ; 
-				negEqualPrefixes = negEqualPrefixes && (f.equ.get(x) == (-1)*this.equ.get(x)) ;
-			}
-		}
-		
-		//Now we're sure, every variable from f is in here, too
-		if (e == Element.AND) {
-			
-			
-			if (f.op == Element.EQ && f.equ.size() == 1 && fAllOne) {
-				String var = f.equ.keySet().toArray(new String[1])[0];
-				this.bound = this.bound - this.equ.get(var) * f.bound;
-				this.equ.remove(var);
-				checkBounds();
-			}
-			
-			if (f.op == Element.EQ && equalPrefixes) {
-				//In this case we can just put in the bound of f instead of the left hand side of f in here.
-				for (String x:f.equ.keySet()) {
-					this.equ.remove(x);
-				}
-				this.bound = this.bound - f.bound;
-				if (this.equ.size() == 0) {
-					checkBounds();
-				return;
-				}	
-			}
-			
-			if (this.equ.size() == f.equ.size()) {
-
-				if (this.op == Element.EQ && f.op == Element.EQ) {
-					if (this.bound != f.bound) {
-						this.op = Element.FALSE;
-					} else {
-						//MAKE SURE THIS CASE IS TRUE
-						this.op = Element.TRUE;
-					}
-				}
-				
-				if (this.bound == f.bound && (this.op == Element.EQ && f.op == Element.NEQ) || (this.op == Element.NEQ && f.op == Element.EQ)) {
-					this.op = Element.FALSE;
-				}
-				
-				if (this.op == Element.LEQ && f.op == Element.LEQ) {
-					if (negEqualPrefixes && this.bound == (-1)*f.bound) {
-						this.op = Element.EQ;
-						return;
-					} else {
-						if (this.bound > f.bound) {
-							this.op = Element.TRUE;
-							return;
-						}
-					}
-				}
-			}
-			
-		} else {
-			//That means we're in the OR-Case
-			
-			
-		}
-
-		simplify();
-	}
-	
 	public void getPropagationAndAct2(Formula f,Element e) {
 		
 		//Check if the variable set is equal
@@ -638,7 +558,7 @@ public class Formula {
 				return;
 			}
 		} else {
-			//Thats OR with 4 cases
+			//Thats OR with 2 cases
 			if (this.op == Element.EQ && f.op == Element.LEQ) {
 				if (sameVarSetThis && sameVarSetF && equalPrefixesThis && equalPrefixesF) {
 					if (this.bound == f.bound) {

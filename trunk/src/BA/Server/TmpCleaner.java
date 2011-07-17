@@ -18,9 +18,11 @@ public class TmpCleaner extends Thread{
 		       for (int i = 0; i < children.length; i++) {
 		           File x = new File(dir, children[i]);
 		           String name = x.getName();
-		           Long time = Long.valueOf(name.substring(0, 13));
-		           if (time + 1800000 < System.currentTimeMillis()) {
-		        	   x.delete();
+		           if (!name.substring(0, 1).equals(".")) {
+			           Long time = Long.valueOf(name.substring(0, 13));
+			           if (time + 1800000 < System.currentTimeMillis()) {
+			        	   x.delete();
+			           }
 		           }
 		       }
 		   }
