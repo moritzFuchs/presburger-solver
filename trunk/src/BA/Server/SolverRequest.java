@@ -30,6 +30,9 @@ public class SolverRequest {
 	private String exportName;
 	private Integer varNum;
 	
+	private Boolean isTautology = false;
+	private Boolean isOxymoron = false;
+	
 	private boolean timeout = false;
 	
 	public SolverRequest(int id, String e, int clientId , String session) {
@@ -199,7 +202,8 @@ public class SolverRequest {
 				}
 	        	
 	        }
-	        
+	        jsonSolution += ", \"tautology\": " + this.isTautology +
+							", \"oxymoron\": " + this.isOxymoron;
 	    	jsonSolution += "}";
 	    	
 	    	return jsonSolution;
@@ -237,5 +241,21 @@ public class SolverRequest {
 	
 	public boolean getTimeout() {
 		return this.timeout;
+	}
+	
+	public void setTautology(Boolean value) {
+		isTautology = value;
+	}
+	
+	public void setOxymoron(Boolean value) {
+		isOxymoron = value;
+	}
+	
+	public Boolean isTautology() {
+		return isTautology;
+	}
+	
+	public Boolean isOxymoron() {
+		return isOxymoron;
 	}
 }

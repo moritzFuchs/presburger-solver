@@ -109,12 +109,12 @@ var macroIds = new Array(0);
     		}
     		
     	} else {
-    		if (data["varNum"] == 0) {
-    			if (abs == -1)
-    				jQuery("#gridText-" + id).html("<p>Since there is a solution to your formula and there are no free variables in your formula, your formula is a tautology.</p>");
-    			else
-    				jQuery("#gridText-" + id).html("<p>Since there is a solution to your formula and there are no free variables in your formula, your formula is a oxymoron.</p>");	
-    		}
+    		
+    		if (data["tautology"])
+    			jQuery("#gridText-" + id).html("<p>Your formula is a tautology.</p>");
+    		if (data["oxymoron"])
+    			jQuery("#gridText-" + id).html("<p>Your formula is an oxymoron.</p>");
+    		
     		
     		if (data["Solutions"].size() >= 5000) {
     			askUser(

@@ -406,11 +406,11 @@ public class PresburgerAutomaton{
 		return ret.not();
 	}
 	
-	//TODO: See if we can make this a sideeffect-method
+
 	/**
 	 * Deprecated, just in there for testing-purposes
 	 */
-	public PresburgerAutomaton determinizeOld() {
+	private PresburgerAutomaton determinizeOld() {
 		//First, find the initial state
 		
 		Enumeration<State> allStates = states.elements();
@@ -525,7 +525,7 @@ public class PresburgerAutomaton{
 	 * 2nd determinize-try, uses letter-guess-method
 	 * @return
 	 */
-	public PresburgerAutomaton determinize2() {
+	private PresburgerAutomaton determinize2() {
 		
 		if (isDFA())
 			return this;
@@ -646,7 +646,7 @@ public class PresburgerAutomaton{
 	 * 3rd determinize-try, uses powerset-construction of reachable states.
 	 * @return
 	 */
-	public PresburgerAutomaton determinize3() {
+	private PresburgerAutomaton determinize3() {
 		
 		if (isDFA())
 			return this;
@@ -818,7 +818,7 @@ public class PresburgerAutomaton{
 			worklist.add(np);
 		}
 
-		int i=0;
+
 		//Preparation done, let's get going.
 		while(!worklist.isEmpty() && partition.size() != this.size()) {
 			Pair<Set<State>,Character[]> currentPair = worklist.remove();
@@ -835,13 +835,11 @@ public class PresburgerAutomaton{
 			
 			for (Set<State> currentClass:tmpPartition) {				
 				
-				
+				//split the class
+				Pair<Set<State>,Set<State>> split = split(currentClass , currentPair.getFirst(), currentPair.getSecond());
 				//See if we can split this Class by currentPair
-				if (isSplittable(currentClass,currentPair.getFirst(),currentPair.getSecond())) {
-					
-					
-					Pair<Set<State>,Set<State>> split = split(currentClass , currentPair.getFirst(), currentPair.getSecond());
-					
+				if (!split.getFirst().isEmpty() && !split.getSecond().isEmpty()) {
+
 					partition.remove(currentClass);
 					partition.add(split.getFirst());
 					partition.add(split.getSecond());
@@ -858,6 +856,7 @@ public class PresburgerAutomaton{
 					Set<Pair<Set<State>,Character[]>> remove = new HashSet<Pair<Set<State>,Character[]>>();
 					Set<Pair<Set<State>,Character[]>> add = new HashSet<Pair<Set<State>,Character[]>>();
 					
+					//replace existing Pairs in worklist with the split class
 					for (Pair<Set<State>,Character[]> x:worklist) {
 						if (x.getFirst().containsAll(currentClass)) {
 							Pair<Set<State>,Character[]> newWork1 = new Pair<Set<State>,Character[]>();
@@ -876,13 +875,19 @@ public class PresburgerAutomaton{
 							done.add(x.getSecond());
 						}
 					}
+					
+					//The following has to be done to prevent ConcurrentModificationException
+					
+					//remove replaced items in worklist
 					for (Pair<Set<State>,Character[]> item:remove) {
 						worklist.remove(item);
 					}
+					//add the items that replace the old class to the worklist
 					for (Pair<Set<State>,Character[]> item:add) {
 						worklist.add(item);
 					}
 
+					//Add the smaller class from the split with all letters that were not seen in the replace-part above (done contains all letters that were handled already
 					for (Character[] letter:alphabet) {
 						if (!done.contains(letter)) {
 							
@@ -904,10 +909,13 @@ public class PresburgerAutomaton{
 		//Algorithm done, so lets make the new states and transitions!
 		Hashtable<String,State> newStates = makeStates(partition);
 		Hashtable<State,Hashtable<State,BDD>> newTransitions = makeTransitions(partition , newStates);
-		
+
+		//replace current state-space by new state space
 		states = newStates;
+		//replace current transition function by new transition function
 		transitions = newTransitions;
 		
+		//set the minimal-flag to true (may prevent double minimizations) 
 		isMinimal = true;
 		
 		return this;
@@ -1218,6 +1226,11 @@ public class PresburgerAutomaton{
 		return this.getOneSat(0);
 	}
 	
+	/**
+	 * Get's a solution of the automaton and tries to loop n times
+	 * @param n
+	 * @return
+	 */
 	public Integer[] getOneSat(int loop) {
 		
 		if (!containsFinalState(states.values()))
@@ -2579,8 +2592,35 @@ public class PresburgerAutomaton{
 		return result;
 	}
 
+	/**
+	 * Returns the number of variables for the automaton
+	 * @return
+	 */
 	public Integer countVariables() {
 		return variables.length;
+	}
+
+	/**
+	 * Checks if the automaton always accepts (=tautology)
+	 */
+	public boolean isOneAutomaton() {
+		for (State s:states.values()) {
+			if (!s.isFinal())
+				return false;
+		}	
+		return true;
+	}
+	
+	/**
+	 * Checks if the automaton never accepts (=Oxymoron)
+	 * @return
+	 */
+	public boolean isZeroAutomaton() {
+		for (State s:states.values()) {
+			if (s.isFinal())
+				return false;
+		}	
+		return true;
 	}
 	
 }
