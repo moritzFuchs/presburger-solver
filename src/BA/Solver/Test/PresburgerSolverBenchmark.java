@@ -11,17 +11,17 @@ import BA.Solver.Exceptions.TooManyVariablesException;
 public class PresburgerSolverBenchmark {
 
 	
-	private boolean minimize = true;
+	private boolean minimize = false;
 	
 	private String[] alphabet = new String[]{"a","b","c","d","e","f","g","h","i","j","k","l","m","n"};
-	private Integer GENERIC_TEST_TOUGHNESS = 8;
+	private Integer GENERIC_TEST_TOUGHNESS = 1;
 	
 	@Test(timeout=60000) 
 	public void alternateQuant() {
 		String equation = "";
 		String equation2 = "";
 		
-		for (int i=0;i<alphabet.length && i<10;i+=2) {
+		for (int i=0;i<alphabet.length && i<2;i+=2) {
 			equation += "A"+alphabet[i]+":";
 			equation += "E"+alphabet[i+1]+":";
 			
@@ -91,7 +91,7 @@ public class PresburgerSolverBenchmark {
 		String input="";
 		
 		//State-Space grows with int1
-		int int1 = 100000;
+		int int1 = 10;
 		int int2 = int1+1;
 		int int3 = 0;
 		

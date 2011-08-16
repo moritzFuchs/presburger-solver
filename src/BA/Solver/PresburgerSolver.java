@@ -183,7 +183,15 @@ public class PresburgerSolver {
         	if (benchmark) {
         		return;
         	}
-
+        	
+        	if (result.isOneAutomaton()) {
+        		request.setTautology(true);
+        	}
+        	
+        	if (result.isZeroAutomaton()) {
+        		request.setOxymoron(true);
+        	}
+        	
         	List<Integer[]> solutions = new LinkedList<Integer[]>();
         	Integer numSol = result.getSatCount();
         	System.out.println("Number of Solutions: " + numSol);
