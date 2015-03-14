@@ -1,0 +1,1 @@
+A solver for Presburger Arithmetic, that I developed as part of my bachelor thesis at the Technical University of Munich.
